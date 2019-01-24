@@ -40,6 +40,7 @@ tail(rawtable)
 
 
 
+
 #### PRE-PROCESS  ####
 
 ## scale variables 
@@ -147,6 +148,7 @@ yearly <- imputed.table %>% group_by(DateTime=floor_date(DateTime, "year")) %>%
 
 
 
+
 #### visualization ####
 #### PLOT -> Global Power vs Submetering Records ####
 ggplot(data = monthly, aes(x = DateTime)) +
@@ -191,9 +193,9 @@ plot_ly(weekly, x = ~weekly$DateTime, y = ~weekly$Sub_metering_1, #plot week
 
 
 
-#### Subset  #### 
+#### Filtering visualizations  #### 
 
-#### VACATION  ####
+#### PLOT -> VACATION PERIODS  ####
 
 #### 2007 ####
 
@@ -212,14 +214,29 @@ plot_ly(vacation2007, x = ~vacation2007$DateTime, y = ~vacation2007$Sub_metering
          yaxis = list (title = "Power (watt-hours)"))
 
 #### 2008 ####
-vacation2008 <- filter(imputed.table, year== "2007", month == "8")
+vacation2008 <- filter(imputed.table, year== "2008", month == "8")
 plot_ly(vacation2008, x = ~vacation2008$DateTime, y = ~vacation2008$Sub_metering_1, 
         name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~vacation2007$Sub_metering_2,
+  add_trace(y = ~vacation2008$Sub_metering_2,
             name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~vacation2007$Sub_metering_3,
+  add_trace(y = ~vacation2008$Sub_metering_3,
             name = 'Water Heater & AC', mode = 'lines') %>%
-  add_trace(y = ~vacation2007$other_areas,
+  add_trace(y = ~vacation2008$other_areas,
+            name = 'Other Areas', mode = 'lines') %>%
+  layout(title = "Power Consumption per submeter in vacation",
+         xaxis = list(title = "Time"),
+         yaxis = list (title = "Power (watt-hours)"))
+
+
+#### 2009 ####
+vacation2009 <- filter(imputed.table, year== "2009", month == "8", day >= 1 & day <= 14)
+plot_ly(vacation2009, x = ~vacation2009$DateTime, y = ~vacation2009$Sub_metering_1, 
+        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
+  add_trace(y = ~vacation2009$Sub_metering_2,
+            name = 'Laundry Room', mode = 'lines') %>%
+  add_trace(y = ~vacation2009$Sub_metering_3,
+            name = 'Water Heater & AC', mode = 'lines') %>%
+  add_trace(y = ~vacation2009$other_areas,
             name = 'Other Areas', mode = 'lines') %>%
   layout(title = "Power Consumption per submeter in vacation",
          xaxis = list(title = "Time"),
@@ -227,170 +244,162 @@ plot_ly(vacation2008, x = ~vacation2008$DateTime, y = ~vacation2008$Sub_metering
 
 
 
-vacation2009 <- filter(imputed.table, year== "2009", month == "8")
 
-
-plot_ly(weekly, x = ~weekly$DateTime, y = ~weekly$Sub_metering_1, #plot week
+#### PLOT -> SEASONS ####
+plot_ly(seasonaly, x = ~seasonaly$DateTime, y = ~seasonaly$Sub_metering_1, #plot Summer 2009
         name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~weekly$Sub_metering_2,
+  add_trace(y = ~seasonaly$Sub_metering_2,
             name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~weekly$Sub_metering_3,
+  add_trace(y = ~seasonaly$Sub_metering_3,
             name = 'Water Heater & AC', mode = 'lines') %>%
-  add_trace(y = ~weekly$other_areas,
+  add_trace(y = ~seasonaly$other_areas,
             name = 'Other Areas', mode = 'lines') %>%
-  layout(title = "Power Consumption per submeter by week",
-         xaxis = list(title = "Time"),
+  layout(title = "Seasonal Power Consumption per sub-meter",
+         xaxis = list(title = "Season"),
          yaxis = list (title = "Power (watt-hours)"))
 
 
-#### comparison between years ####
 
-august2008 <- hourly%>% group_by(year = 2008, month == 8) #holidays 2008
 
-years.month <- bind_rows(by2007, by2008, by2009)
 
-plot_ly(by2007, x = ~by2007$DateTime, y = ~by2007$Sub_metering_1, #plot 2007
-        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~by2007$Sub_metering_2,
-            name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~by2007$Sub_metering_3,
-            name = 'Water Heater & AC', mode = 'lines') %>%
-  layout(title = "Power Consumption 2007",
-         xaxis = list(title = "Time"),
-         yaxis = list (title = "Power (watt-hours)"))
 
-plot_ly(by2008, x = ~by2008$DateTime, y = ~by2008$Sub_metering_1, #plot 2008
-        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~by2008$Sub_metering_2,
-            name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~by2008$Sub_metering_3,
-            name = 'Water Heater & AC', mode = 'lines') %>%
-  layout(title = "Power Consumption 2008",
-         xaxis = list(title = "Time"),
-         yaxis = list (title = "Power (watt-hours)"))
-
-plot_ly(august2008, x = ~august2008$DateTime, y = ~august2008$Sub_metering_1, #Holidays 2008
-        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~august2008$Sub_metering_2,
-            name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~august2008$Sub_metering_3,
-            name = 'Water Heater & AC', mode = 'lines') %>%
-  layout(title = "Power Consumption 2008",
-         xaxis = list(title = "Time"),
-         yaxis = list (title = "Power (watt-hours)"))
-
-plot_ly(by2009, x = ~by2009$DateTime, y = ~by2009$Sub_metering_1, #plot 2009
-        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~by2009$Sub_metering_2,
-            name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~by2009$Sub_metering_3,
-            name = 'Water Heater & AC', mode = 'lines') %>%
-  layout(title = "Power Consumption 2009",
-         xaxis = list(title = "Time"),
-         yaxis = list (title = "Power (watt-hours)"))
-
-plot_ly(byseason, x = ~byseason$Season, y = ~byseason$Sub_metering_1, #plot Seasons
-        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~byseason$Sub_metering_2,
-            name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~byseason$Sub_metering_3,
-            name = 'Water Heater & AC', mode = 'lines') %>%
-  layout(title = "Power Consumption by Season",
-         xaxis = list(title = "Time"),
-         yaxis = list (title = "Power (watt-hours)"))
-
-#### Seasons ####
-houseWinter <- filter(hourly, Season == "Winter", year == 2009)
-houseSummer <- filter(hourly, Season == "Summer", year == 2009)
-houseAutumn <- filter(min30, Season == "Autumn")
-houseSpring <- filter(min30, Season == "Spring")
-
-plot_ly(houseSummer, x = ~houseSummer$DateTime, y = ~houseSummer$Sub_metering_1, #plot Summer 2009
-        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~houseSummer$Sub_metering_2,
-            name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~houseSummer$Sub_metering_3,
-            name = 'Water Heater & AC', mode = 'lines') %>%
-  layout(title = "Power Consumption by Season",
-         xaxis = list(title = "Time"),
-         yaxis = list (title = "Power (watt-hours)"))
 
 #### Forecasting ####
 
-## create df to forecast ##
+#### create time series objects ####
+ts_month <- ts(monthly, start = c(2006,12), frequency = 12)
+ts_week <- ts(weekly, start = c(2006,12), frequency = 52)
+ts_day <- ts(daily, start = c(2006,12), frequency = 365)
+ts_hour <- ts(hourly, start = c(2006,12), frequency = 8760)
+ts_min <- ts(imputed.table, frequency = 24*60*7)
 
 
-## NULL season cause character ##
-hourly$Season <- NULL 
-daily$Season <- NULL 
-weekly$Season <- NULL 
-monthly$Season <- NULL 
+## plot possibly predictable vars ##
 
-## by hour ##
-ts_hour <- ts(hourly, frequency = )
+  #### MONTHLY ####
 
-## by day ##
-tsday <- ts(daily, frequency = 365.25*7)
-
-## by week ##
-ts_week <- ts(weekly,start = c(2007,1), end = c(2010, 47), frequency = 52)
-
-## by month ##
-ts_month <- ts(monthly, start = c(2007,1), end = c(2010,11), frequency = 12)
-
-## ecplore ts ##
-ts_hour
-tsday
-ts_week
-ts_month
-
-#### month forecasting ####
-plot.ts(ts_month[,"Sub_metering_1"])
-plot.ts(ts_month[,"Sub_metering_2"])
-plot.ts(ts_month[,"Sub_metering_3"])
-plot.ts(ts_month[,"Global_active_power"])
-plot.ts(ts_month[,"Submeterings"])
-
-#### week forecasting ####
-plot.ts(ts_week[,"Sub_metering_1"])
-plot.ts(ts_week[,"Sub_metering_2"])
-plot.ts(ts_week[,"Sub_metering_3"])
-plot.ts(ts_week[,"Global_active_power"])
-plot.ts(ts_week[,"Submeterings"])
-
-## week ##
-ts_week[,"Submeterings"] %>% decompose() %>%
+ts_month [,"Global_active_power"] %>% decompose() %>%
   autoplot() + xlab("Year") +
-  ggtitle("Submeterings decomposition
-          of weeks")
+  ggtitle("Monthly decomposition
+          of Global Active Power")
 
-ts_week[,"Sub_metering_3"] %>% decompose() %>%
-  autoplot() + xlab("Year") +
-  ggtitle("Submeterings decomposition
-          of weeks")
 
-## month ##
-ts_month[,"Global_active_power"] %>% stl(s.window = 12) %>%
+ts_month [,"Sub_metering_1"] %>% decompose() %>%
   autoplot() + xlab("Year") +
-  ggtitle("Submeterings decomposition
-          of months")
+  ggtitle("Monthly decomposition
+          of Sub_metering_1")
 
-ts_month[,"Sub_metering_1"] %>% stl(s.window = 12) %>%
-  autoplot() + xlab("Year") +
-  ggtitle("Submetering 1 decomposition
-          of months")
 
-ts_month[,"Sub_metering_2"] %>% stl(s.window = 12) %>%
+ts_month [,"Sub_metering_2"] %>% decompose() %>%
   autoplot() + xlab("Year") +
-  ggtitle("Submetering 2 decomposition
-          of months")
+  ggtitle("Monthly decomposition
+          of Sub_metering_2")
 
-ts_month[,"Sub_metering_3"] %>% stl(s.window = 12) %>%
-  autoplot() + xlab("Year") +
-  ggtitle("Submetering 3 decomposition
-          of months")
 
-ts_month[,"other_areas"] %>% decompose() %>%
+ts_month [,"Sub_metering_3"] %>% decompose() %>%
   autoplot() + xlab("Year") +
-  ggtitle("Other Areas decomposition
-          of months")
+  ggtitle("Monthly decomposition
+          of Sub_metering_3")
+
+ts_month [,"other_areas"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Monthly decomposition
+          of other_areas")
+
+
+  #### WEEKLY ####
+
+ts_week [,"Global_active_power"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Weekly decomposition
+          of Global Active Power")
+
+
+ts_week [,"Sub_metering_1"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Weekly decomposition
+          of Sub_metering_1")
+
+
+ts_week [,"Sub_metering_2"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Weekly decomposition
+          of Sub_metering_2")
+
+
+ts_week [,"Sub_metering_3"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Weekly decomposition
+          of Sub_metering_3")
+
+ts_week [,"other_areas"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Weekly decomposition
+          of other_areas")
+
+
+  #### DAILY ####
+
+ts_day [,"Global_active_power"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Daily decomposition
+          of Global Active Power")
+
+
+ts_day [,"Sub_metering_1"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Daily decomposition
+          of Sub_metering_1")
+
+
+ts_day [,"Sub_metering_2"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Daily decomposition
+          of Sub_metering_2")
+
+
+ts_day [,"Sub_metering_3"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Daily decomposition
+          of Sub_metering_3")
+
+ts_day [,"other_areas"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Daily decomposition
+          of other_areas")
+
+
+  #### HOURLY  ####
+
+ts_hour [,"Global_active_power"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Hourly decomposition
+          of Global Active Power")
+
+
+ts_hour [,"Sub_metering_1"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Hourly decomposition
+          of Sub_metering_1")
+
+
+ts_hour [,"Sub_metering_2"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Hourly decomposition
+          of Sub_metering_2")
+
+
+ts_hour [,"Sub_metering_3"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Hourly decomposition
+          of Sub_metering_3")
+
+ts_hour [,"other_areas"] %>% decompose() %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Hourly decomposition
+          of other_areas")
+
+
+
+
+
