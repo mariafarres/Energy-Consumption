@@ -278,10 +278,26 @@ ts_min <- ts(imputed.table, frequency = 24*60*7)
 
   #### MONTHLY ####
 
+monthly_gap <- ts_month [,"Global_active_power"] %>% decompose()
+
+sum(abs(monthly_gap$random))
+
+
 ts_month [,"Global_active_power"] %>% decompose() %>%
   autoplot() + xlab("Year") +
   ggtitle("Monthly decomposition
           of Global Active Power")
+
+
+
+
+
+ts_month [,"Global_active_power"] %>% stl(s.window = 12) %>%
+  autoplot() + xlab("Year") +
+  ggtitle("Monthly decomposition
+          of Global Active Power")
+
+
 
 
 ts_month [,"Sub_metering_1"] %>% decompose() %>%
