@@ -41,6 +41,7 @@ tail(rawtable)
 
 
 
+
 #### PRE-PROCESS  ####
 
 ## scale variables 
@@ -96,42 +97,62 @@ imputed.table$Season <- ifelse(imputed.table$month == 12|imputed.table$month == 
 
 
 #### Sampling for visualization ####
-#### every 30 min ####
-min30 <- imputed.table %>% group_by(cut(DateTime, "30 min")) %>%
-  dplyr::summarize_at(vars(Sub_metering_1,Sub_metering_2,Sub_metering_3,Global_active_power, 
-                           other_areas, Submeterings, year, month, week, day), funs(sum)) 
 
-colnames(min30)[1] <- "DateTime" 
+aggregated_df <- c()
+plots.gap.sub <- c()
+plots.gap.sumsub <- c()
+
+##### Loop to study granularity ####
+
+granularity <- c("year", "month", "day", "hour", "30 mins")
+
+for(g in granularity){
+  aggregated_df[[g]] <- imputed.table %>%
+    group_by(DateTime=floor_date(DateTime, g)) %>%
+    dplyr::summarize_at(vars(
+      Sub_metering_1,
+      Sub_metering_2,
+      Sub_metering_3,
+      Global_active_power, 
+      other_areas,
+      Submeterings,
+      year,
+      month,
+      week,
+      day
+    ),
+    funs(sum))
+
+  ##### Plots to study granularity ####
+  
+  plots.gap.sub[[g]] <- plot_ly(aggregated_df[[g]], x = ~aggregated_df[[g]]$DateTime, y = ~aggregated_df[[g]]$Sub_metering_1, 
+          name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
+    add_trace(y = ~aggregated_df[[g]]$Sub_metering_2,
+              name = 'Laundry Room', mode = 'lines') %>%
+    add_trace(y = ~aggregated_df[[g]]$Sub_metering_3,
+              name = 'Water Heater & AC', mode = 'lines') %>%
+    add_trace(y = ~aggregated_df[[g]]$other_areas,
+              name = 'Other Areas', mode = 'lines') %>%
+    layout(title = paste("Power Consumption per sub-meter by", g),
+           xaxis = list(title = "Time"),
+           yaxis = list (title = "Power (watt-hours)"))
+
+  #### PLOT -> Global Power vs Submetering Records ####
+  plots.gap.sumsub[[g]] <- ggplot(data = aggregated_df[[g]], aes(x = DateTime)) +
+    geom_line(aes(y = Submeterings, color = "Submetering")) +
+    geom_line(aes(y = Global_active_power, color = "Global Power")) +
+    theme_minimal()+
+    labs(title = paste("Global power vs submetering records", g),
+         x = "Time",
+         y = "Power")
+  
+  }
 
 
-#### hourly grouped ####
-hourly <- imputed.table %>% group_by(DateTime=floor_date(DateTime, "hour")) %>%
-  dplyr::summarize_at(vars(Sub_metering_1,Sub_metering_2,Sub_metering_3,Global_active_power, 
-                           other_areas, Submeterings, year, month, week, day), funs(sum)) 
-
-colnames(hourly)[1] <- "DateTime" 
 
 
-#### daily grouped ####
-daily <- imputed.table %>% group_by(DateTime=floor_date(DateTime, "day")) %>%
-  dplyr::summarize_at(vars(Sub_metering_1,Sub_metering_2,Sub_metering_3,Global_active_power, 
-                           other_areas, Submeterings, year, month, week, day), funs(sum)) 
-
-colnames(daily)[1] <- "DateTime" 
-
-
-#### weekly grouped ####
-weekly <- imputed.table %>% group_by(DateTime=floor_date(DateTime, "week")) %>%
-  dplyr::summarize_at(vars(Sub_metering_1,Sub_metering_2,Sub_metering_3,Global_active_power, 
-                           other_areas, Submeterings, year, month, week, day), funs(sum)) 
-colnames(weekly)[1] <- "DateTime" 
-
-
-#### monthly grouped ####
-monthly <- imputed.table %>% group_by(DateTime=floor_date(DateTime, "month")) %>%
-  dplyr::summarize_at(vars(Sub_metering_1,Sub_metering_2,Sub_metering_3,Global_active_power, 
-                            other_areas, Submeterings, year, month, week, day), funs(sum))  #grouping by month
-colnames(monthly)[1] <- "DateTime" 
+variables <- c("Global_active_power", "Sub_metering_1", "Sub_metering_2", "Sub_metering_2", "Sub_metering_3","other_areas")
+for(v in variables){
 
 
 #### seasonaly grouped ####
@@ -141,41 +162,36 @@ seasonaly <- imputed.table %>% group_by(Season) %>%
 colnames(seasonaly)[1] <- "DateTime"  
 
 
-#### yearly grouped ####
-yearly <- imputed.table %>% group_by(DateTime=floor_date(DateTime, "year")) %>%
-  dplyr::summarize_at(vars(Sub_metering_1,Sub_metering_2,Sub_metering_3,Global_active_power, 
-                           other_areas, Submeterings, year, month, week, day), funs(sum)) #grouping by year
-
 
 
 
 #### visualization ####
 #### PLOT -> Global Power vs Submetering Records ####
-ggplot(data = monthly, aes(x = DateTime)) +
+plots[[g]] <- ggplot(data = aggregated_df[[g]], aes(x = DateTime)) +
   geom_line(aes(y = Submeterings, color = "Submetering")) +
   geom_line(aes(y = Global_active_power, color = "Global Power")) +
   theme_minimal()+
-  labs(title = "Global Power vs Submetering Records",
+  labs(title = paste("Global power vs submetering records", g),
        x = "Time",
        y = "Power")
 
 
 
 #### PLOT -> Power Consumption per sub-meter by month ####
-plot_ly(monthly, x = ~monthly$DateTime, y = ~monthly$Sub_metering_1, 
+plot_ly(aggregated_df[[g]], x = ~aggregated_df[[g]]$DateTime, y = ~aggregated_df[[g]]$Sub_metering_1, 
         name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
-  add_trace(y = ~monthly$Sub_metering_2,
+  add_trace(y = ~aggregated_df[[g]]$Sub_metering_2,
             name = 'Laundry Room', mode = 'lines') %>%
-  add_trace(y = ~monthly$Sub_metering_3,
+  add_trace(y = ~aggregated_df[[g]]$Sub_metering_3,
             name = 'Water Heater & AC', mode = 'lines') %>%
-  add_trace(y = ~monthly$other_areas,
+  add_trace(y = ~aggregated_df[[g]]$other_areas,
             name = 'Other Areas', mode = 'lines') %>%
   layout(title = "Power Consumption per sub-meter by month",
          xaxis = list(title = "Time"),
          yaxis = list (title = "Power (watt-hours)"))
 
 #### PLOT -> Power Consumption per submeter by week ####
-plot_ly(weekly, x = ~weekly$DateTime, y = ~weekly$Sub_metering_1, #plot week
+plot_ly(weekly, x = ~aggregated_df[["week"]]$DateTime, y = ~weekly$Sub_metering_1, #plot week
         name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
   add_trace(y = ~weekly$Sub_metering_2,
             name = 'Laundry Room', mode = 'lines') %>%
@@ -186,8 +202,6 @@ plot_ly(weekly, x = ~weekly$DateTime, y = ~weekly$Sub_metering_1, #plot week
   layout(title = "Power Consumption per submeter by week",
          xaxis = list(title = "Time"),
          yaxis = list (title = "Power (watt-hours)"))
-
-
 
 
 
@@ -276,17 +290,29 @@ ts_min <- ts(imputed.table, frequency = 24*60*7)
 
 ## plot possibly predictable vars ##
 
-  #### MONTHLY ####
+  #### MONTHLY ts / variable ####
+monthly_gap <- ts_month [ ,"Global_active_power"] 
+monthly_S1 <- ts_month [ ,"Sub_metering_1"]
+monthly_S2 <- ts_month [ ,"Sub_metering_2"]
+monthly_S3 <- ts_month [ ,"Sub_metering_3"]
+monthly_OA <- ts_month [ ,"other_areas"]
 
-monthly_gap <- ts_month [,"Global_active_power"] %>% decompose()
-
-sum(abs(monthly_gap$random))
 
 
-ts_month [,"Global_active_power"] %>% decompose() %>%
+#### Monthly decomposition visualizations & remainder analysis ####
+
+monthly_gap_decomposed <- monthly_gap %>% stl(s.window = 12)
+
+monthly_gap_decomposed %>%
   autoplot() + xlab("Year") +
   ggtitle("Monthly decomposition
           of Global Active Power")
+
+m_gap_random <- monthly_gap_decomposed$time.series
+remainder <- monthly_gap_decomposed$time.series[ ,3]
+random_analysis <- as.data.frame(sum(abs(remainder)))
+colnames(random_analysis) <- "gap"
+
 
 
 
@@ -325,13 +351,20 @@ ts_month [,"other_areas"] %>% decompose() %>%
 
   #### WEEKLY ####
 
-ts_week [,"Global_active_power"] %>% decompose() %>%
+#### WEEKLY ts / variable ####
+weekly_gap <- ts_week [ ,"Global_active_power"] 
+weekly_S1 <- ts_week [ ,"Sub_metering_1"]
+weekly_S2 <- ts_week [ ,"Sub_metering_2"]
+weekly_S3 <- ts_week [ ,"Sub_metering_3"]
+weekly_OA <- ts_week [ ,"other_areas"]
+
+weekly_gap %>% decompose() %>%
   autoplot() + xlab("Year") +
   ggtitle("Weekly decomposition
           of Global Active Power")
 
 
-ts_week [,"Sub_metering_1"] %>% decompose() %>%
+weekly_S1 %>% decompose() %>%
   autoplot() + xlab("Year") +
   ggtitle("Weekly decomposition
           of Sub_metering_1")
@@ -352,6 +385,7 @@ ts_week [,"other_areas"] %>% decompose() %>%
   autoplot() + xlab("Year") +
   ggtitle("Weekly decomposition
           of other_areas")
+
 
 
   #### DAILY ####
