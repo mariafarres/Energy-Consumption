@@ -3,7 +3,7 @@
 ## load libraries
 
 pacman::p_load("RMySQL","dplyr", "tidyr","lubridate","esquisse","padr","imputeTS",
-               "ggplot2", "chron","plotly", "forecast", "zoo", "shiny")
+               "ggplot2", "chron","plotly", "forecast", "forecastHybrid","zoo", "shiny")
 
 
 ## read SQL 
@@ -231,9 +231,25 @@ plot_ly(vacation2009, x = ~vacation2009$DateTime, y = ~vacation2009$Sub_metering
 
 
 
+####2010####
+nov2010 <- filter(imputed.table, year== "2010", month == "11")
+nov2010_day4 <- nov2010 <- filter(imputed.table, year== "2010", month == "11", day== 4)
+
+plot_ly(nov2010, x = ~nov2010$DateTime, y = ~nov2010$Sub_metering_1, #plot week
+        name = 'Kitchen', type = 'scatter', mode = 'lines') %>%
+  add_lines(y = ~nov2010$Sub_metering_2,
+            name = 'Laundry Room', mode = 'lines') %>%
+  add_lines(y = ~nov2010$Sub_metering_3,
+            name = 'Water Heater & AC', mode = 'lines') %>%
+  add_lines(y = ~nov2010$other_areas,
+            name = 'Other Areas', mode = 'lines') %>%
+  layout(title = "Power Consumption per submeter in november",
+         xaxis = list(title = "Time"),
+         yaxis = list (title = "Power (watt-hours)"))
 
 
-
+write.csv(nov2010, file= "nov2010.csv")
+write.csv(nov2010, file= "nov2010_day4.csv")
 
 
 #### APPLIANCE ANALYSIS -> analyse fridge behaviour ####
@@ -256,8 +272,6 @@ laundryRoom$appliance <- ifelse(
   "other")
 
 
-
-
 ## Plot Fridge in Submeter 2
 
 allAppl.plot <- ggplot(laundryRoom, aes(x = Datetime, 
@@ -269,16 +283,22 @@ fridge.plot <- ggplot(laundryRoom, aes(x = Datetime,
                         color= appliance == "fridge")) + geom_line() 
 
 
+
 ## How much does the fridge consumes of the power of the Power consumed in the laundry room?
 sum(laundryRoom$`imputed.table$Sub_metering_2`) # sum laundry room power
 
 # create df ONLY with running fridge results
 fridge.final <- filter(laundryRoom, appliance == "fridge")
-sum(fridge.final$`imputed.table$Sub_metering_2`)   # the fridge consumes an 88.65% of the power of the laundry room 
+sum(fridge.final$`imputed.table$Sub_metering_2`)   
+fridge.consumption1 <- sum(fridge.final2$`imputed.table$Sub_metering_2`) / 
+  sum(laundryRoom$`imputed.table$Sub_metering_2`) *100 # the fridge consumes a 88.65% of the power of the laundry room 
+
+
 
 others <- filter(laundryRoom, appliance == "other")
-sum(others$`imputed.table$Sub_metering_2`) # what is not the fridge means 11.35% of the power of the laundry room 
-
+sum(others$`imputed.table$Sub_metering_2`) 
+others.laundry.consumption <- sum(others$`imputed.table$Sub_metering_2`) / 
+  sum(laundryRoom$`imputed.table$Sub_metering_2`) # what is not the fridge means 11.35% of the power of the laundry room 
 
 
 
@@ -289,9 +309,7 @@ sum(laundryRoom$GAP) # sum laundry room power 37710207 watts
 fridge.final2 <- filter(laundryRoom, appliance == "fridge")
 sum(fridge.final2$GAP) # sum fridge power to compare with TOTAL house consumption 13347204 watts
 
-
-#the fridge consumes a 35.4% of the TOTAL power in the house
-
+fridge.consumption2 <- sum(fridge.final2$GAP) / sum(laundryRoom$GAP) *100 # the fridge consumes a 35.4% of the TOTAL power in the house
 
 
 
@@ -317,6 +335,8 @@ outliers.treatment$DateTime <- aggregated_df[["month"]]$DateTime
 
 
 
+
+####TIME SERIES FOR FORECASTING####
 #### create [[g]] time series objects ####
 
 
@@ -324,9 +344,10 @@ ts_month <- ts(aggregated_df[["month"]], start = c(2006,12), frequency = 12)
 ts_month_table <- as.data.frame(ts_month)
 tail(ts_month)
 
-ts_month_outliers <- ts(outliers.treatment, start = c(2006,12), frequency = 12)
-
 ts_month_cutted <-  ts(aggregated_df[["month"]], start = c(2006,12), end = c(2010,10), frequency = 12)  
+
+ts_month_outliers <- ts(outliers.treatment, start = c(2006,12), end = c(2010,10), frequency = 12)
+
 
 
 ts_week <- ts(aggregated_df[["week"]], start = c(2006,51), frequency = 52)
@@ -436,6 +457,8 @@ for(v in variables) {
   }
 
 
+## as our client main interest is to predict GAP, we keep with this variable
+
 #### remainder analysis for each [[v]] in [[g]] -> ABS ERROR df ####
 
 remainder_m <- as.data.frame(remainder_m_table$Global_active_power)
@@ -469,109 +492,181 @@ ggplot(data = granularity_remainders) +
 
 
 
+
+
 #### DATA PARTITION TO FORECAST ####
 
+## create data partition from ts_month (2007-2010.11)
 train <- window(ts_month[,"Global_active_power"], start = c(2006,12), end = c(2009,12))
 test <- window(ts_month[,"Global_active_power"], start= c(2010,1))
 
 
+## create data partition from ts_month_outliers (2007-2010.11) <- treated august 2008
+train_outliers <- window(ts_month_outliers[,"Global_active_power"], start = c(2006,12), end = c(2009,12))
+test_outliers <- window(ts_month_outliers[,"Global_active_power"], start= c(2010,1))
 
-train_outliers <- window(ts_month_outliers[,"lala"], start = c(2006,12), end = c(2009,12))
-test_outliers <- window(ts_month_outliers[,"lala"], start= c(2010,1))
 
-
-
+## create data partition from ts_month cutted (2007-2010.10) <- nov 2010 excluded 
 train_cutted <- window(ts_month_cutted[,"Global_active_power"], start = c(2006,12), end = c(2009,12))
 test_cutted <- window(ts_month_cutted[,"Global_active_power"], start= c(2010,1))
 
 
+
+
 #### FORECASTING ####
 
-#### ETS ####
+#### MODEL ETS <- 2nd WORSE Conf-Intervals ####
+
 modelETS = ets(train)
-predictionETS_monthly = forecast(modelETS, h=18) # forecast 24 months into the future
-predictionETS_monthly
-plot(predictionETS_monthly)
-
-#check metrics comparing prediction in test
-accuracy(predictionETS_monthly, test) 
+predictionETS = forecast(modelETS, h=18) # forecast 18 months ahead (start point train)
+predictionETS
+plot(predictionETS)
+accuracy(predictionETS, test) #check metrics comparing prediction in test
 
 
-#cutted november 2010
+## prediction without november 2010 in train
 modelETS_cutted = ets(train_cutted)
-predictionETS_cutted_monthly = forecast(modelETS_cutted, h=18) # forecast 24 months into the future
-predictionETS_cutted_monthly
-plot(predictionETS_cutted_monthly)
+predictionETS_cutted = forecast(modelETS_cutted, h=18) # forecast 18 months ahead (start point train)
+predictionETS_cutted
+plot(predictionETS_cutted)
+accuracy(predictionETS_cutted, test_cutted) #check metrics comparing prediction in test
 
-#check metrics comparing prediction in test
-accuracy(predictionETS_monthly, test)
+
+## prediction without outliers &  without november 2010 in train
+modelETS_outliers = ets(train_outliers)
+predictionETS_outliers = forecast(modelETS_outliers, h=18) # forecast 18 months ahead (start point train)
+predictionETS_outliers
+plot(predictionETS_outliers)
+accuracy(predictionETS_outliers, test_outliers)
+
+
+## comparing ETS TO ETS no outliers
+autoplot(ts_month_cutted[,"Global_active_power"], series = "real") + 
+  autolayer(predictionETS, series= "ETS prediction", PI= FALSE) + 
+  autolayer(predictionETS_outliers, series= "ETS treated outliers", PI=FALSE)
+
+
+#### MODEL ARIMA  <- 2nd BEST Conf-Intervals ####
+modelArima <- auto.arima(train)
+predictionArima <- forecast(modelArima, h= 18)  # forecast 18 months ahead (start point train)
+predictionArima
+plot(predictionArima)
+accuracy(predictionArima, test)  #check metrics comparing prediction in test
+
+## prediction without november 2010 in train
+modelArima_cutted <- auto.arima(train_cutted)
+predictionArima_cutted <- forecast(modelArima_cutted, h= 18)  # forecast 18 months ahead (start point train)
+predictionArima_cutted
+plot(predictionArima_cutted)
+accuracy(predictionArima, test_cutted)
+
+
+
+## prediction without outliers &  without november 2010 in train
+modelArima_outliers <- auto.arima(train_outliers)
+predictionArima_outliers <- forecast(modelArima_outliers, h= 18)  # forecast 18 months ahead (start point train)
+predictionArima_outliers
+plot(predictionArima_outliers)
+accuracy(predictionArima_outliers, test_outliers) #check metrics comparing prediction in test
+
+
+
+## comparing Arima TO Arima no outliers)
 
 autoplot(ts_month_cutted[,"Global_active_power"], series = "real") + 
-  autolayer(predictionETS_cutted_monthly, series= "ETS prediction", PI= FALSE)
-
-
-####ARIMA####
-modelArima <- auto.arima(train)
-predictionArima_monthly <- forecast(modelArima, h= 18)  #forecast 24 month ahead
-predictionArima_monthly
-plot(predictionArima_monthly, ylim=range(predictionArima_monthly$lower,predictionArima_monthly$upper))
-
-#check metrics comparing prediction in test
-accuracy(predictionArima_monthly, test) 
-
-
-##### ARIMA no outliers ####
-modelArima_outliers <- auto.arima(train_outliers)
-predictionArima_outliers_monthly <- forecast(modelArima_outliers, h= 18)  #forecast 24 month ahead
-predictionArima_outliers_monthly
-plot(predictionArima_outliers_monthly)
-
-#check metrics comparing
-accuracy(predictionArima_outliers_monthly, test_outliers) 
-
-
-#comparing Arima () outlier august 2008 treated)
-
-autoplot(ts_month[,"Global_active_power"], series = "real") + 
-  autolayer(predictionArima_monthly, series= "ARIMA prediction", PI= FALSE) + 
-  autolayer(predictionArima_outliers_monthly, series= "Arima prediction treated", PI=FALSE)
+  autolayer(predictionArima, series= "ARIMA prediction", PI= FALSE) + 
+  autolayer(predictionArima_outliers, series= "Arima treated outliers", PI=FALSE)
 
 
 
-#### HOLT WINTERS ####
+#### HOLT WINTERS <- BEST Conf-Intervals ####
 modelHW <- HoltWinters(train)
-predictionHW_monthly <- forecast(modelHW, h= 18)
-predictionHW_monthly
-plot(predictionHW_monthly, ylim=range(predictionHW_monthly$lower,predictionHW_monthly$upper))
-#check metrics comparing(postresample)
-accuracy(predictionHW_monthly, test)
+predictionHW <- forecast(modelHW, h= 18) # forecast 18 months ahead (start point train)
+predictionHW
+plot(predictionHW)
+accuracy(predictionHW, test) 
+
+## without outliers
+modelHW_outliers <- HoltWinters(train_outliers)
+predictionHW_outliers <- forecast(modelHW_outliers, h= 18) # forecast 18 months ahead (start point train)
+predictionHW_outliers
+plot(predictionHW_outliers)
+accuracy(predictionHW_outliers, test_outliers) #check metrics comparing prediction in test (= postresample)
 
 
-# HW beta FALSE
-modelHW_bfalse <- HoltWinters(train, beta = FALSE)
-predictionHW_bfalse_monthly <- forecast(modelHW_bfalse, h= 18)
+autoplot(ts_month_outliers[,"Global_active_power"], series = "real") + 
+  autolayer(predictionHW, series= "HW prediction", PI=FALSE)+
+  autolayer(predictionHW_outliers, series= "HW outliers treated", PI=FALSE)
 
 
 
-# comparing HW parameters 
-autoplot(ts_month[,"Global_active_power"], series = "real") + 
-  autolayer(predictionHW_monthly, series= "HW prediction", PI= FALSE) + 
-  autolayer(predictionHW_bfalse_monthly, series= "HW prediction 2", PI= FALSE) 
+
+#### FORECASTING HYBRID <- WORSE Conf-Intervals ####
+
+modelHybrid <- hybridModel(train_outliers, weights="insample")
+modelHybrid2 <- hybridModel(train_outliers, weights="equal")
+
+predictionHybrid <- forecast(modelHybrid, h= 18)
+predictionHybrid2 <- forecast(modelHybrid2, h= 18)
+
+predictionHybrid
+predictionHybrid2
+accuracy(predictionHybrid, test_outliers) #check metrics comparing prediction in test (= postresample)
+accuracy(predictionHybrid2, test_outliers)
+
+
+## with outliers
+autoplot(ts_month_outliers[,"Global_active_power"], series = "real") + 
+  autolayer(predictionHybrid, series= "Hybrid prediction", PI=FALSE)+
+  autolayer(predictionHybrid2, series= "Hybrid 2 prediction", PI=FALSE)
 
 
 
-####FORECASTING HYBRID -> combine models ####
 
+
+
+## without outliers
 
 ####COMPARING MODELS ####
 
+#with outliers
 
-autoplot(ts_month[,"Global_active_power"], series = "real") + 
-  autolayer(predictionArima_monthly, series= "ARIMA prediction", PI= FALSE) + 
-  autolayer(predictionHW_monthly, series= "HW prediction", PI=FALSE)+
-  autolayer(predictionETS_monthly, series= "ETS prediction", PI=FALSE)+
-  autolayer(predictionArima_outliers_monthly, series= "ARIMA 2 prediction", PI=FALSE)
+autoplot(ts_month_cutted[,"Global_active_power"], series = "real", width= 2) + 
+  autolayer(predictionETS_outliers, series= "ETS prediction", PI=FALSE)+
+  scale_color_manual(labels = c("Actual", "Forecasted"),
+                     values=c("black", "red")) +
+  aes(linetype = plot_group,
+      size = plot_group) +
+  scale_linetype_manual(labels = c("Actual", "Forecasted"),
+                        values = c(1, 2)) +
+  scale_size_manual(labels = c("Actual", "Forecasted"),
+                    values = c(1, 2))
+  autolayer(predictionArima_outliers, series= "ARIMA prediction", PI= FALSE) + 
+  autolayer(predictionHW_outliers, series= "HW prediction", PI=FALSE)+
+  autolayer(predictionHybrid, series= "Hybrid prediction", PI=FALSE)
 
 
+#FINAL PREDICTION 
+
+  #shorten prediction in graph
+  shortened <- window(predictionHW_outliers$mean, start= c(2010, 10))
+  
+  #shorten previous data in graph
+  shortened1 <- window(ts_month_outliers[, "Global_active_power"], start= c(2010, 9))
+
+  #plot all years
+autoplot(ts_month_outliers[, "Global_active_power"], series = "real", lwd = 2) + 
+  autolayer(shortened, series= "Prediction", PI= FALSE, lwd= 2) 
+
+  #plot from 2010
+autoplot(shortened1, series = "real", ylab= "Power consumption (watts)") +
+  autolayer(shortened, series= "Prediction", PI= FALSE, lwd= 2) 
+  
+
+plot(shortened1)
+
+# autoplot(ts_month_outliers[, "Global_active_power"], series = "real") +
+  # autolayer(predictionArima_outliers, series= "ARIMA prediction", PI= FALSE) + 
+  # autolayer(predictionHW_outliers, series= "HW prediction", PI=FALSE, lwd = 1)
 
 
