@@ -165,6 +165,7 @@ for(g in granularity){
 
   #### PLOT Power Consumption per sub-meter monthly ####
 
+
 plot_ly(aggregated_df[["month"]], 
         x = ~aggregated_df[["month"]]$DateTime, 
         y = ~aggregated_df[["month"]]$Sub_metering_1, 
@@ -595,8 +596,7 @@ accuracy(predictionHW_outliers, test_outliers) #check metrics comparing predicti
 
 
 autoplot(ts_month_outliers[,"Global_active_power"], series = "real") + 
-  autolayer(predictionHW, series= "HW prediction", PI=FALSE)+
-  autolayer(predictionHW_outliers, series= "HW outliers treated", PI=FALSE)
+  autolayer(predictionHW_outliers, series= "HW outliers treated", PI=FALSE, lwd= 1)
 
 
 
@@ -633,16 +633,8 @@ autoplot(ts_month_outliers[,"Global_active_power"], series = "real") +
 
 autoplot(ts_month_cutted[,"Global_active_power"], series = "real", width= 2) + 
   autolayer(predictionETS_outliers, series= "ETS prediction", PI=FALSE)+
-  scale_color_manual(labels = c("Actual", "Forecasted"),
-                     values=c("black", "red")) +
-  aes(linetype = plot_group,
-      size = plot_group) +
-  scale_linetype_manual(labels = c("Actual", "Forecasted"),
-                        values = c(1, 2)) +
-  scale_size_manual(labels = c("Actual", "Forecasted"),
-                    values = c(1, 2))
   autolayer(predictionArima_outliers, series= "ARIMA prediction", PI= FALSE) + 
-  autolayer(predictionHW_outliers, series= "HW prediction", PI=FALSE)+
+  autolayer(predictionHW_outliers, series= "HW prediction", PI=FALSE,  lwd = 1)+
   autolayer(predictionHybrid, series= "Hybrid prediction", PI=FALSE)
 
 
