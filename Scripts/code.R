@@ -40,9 +40,6 @@ tail(rawtable)
 
 
 
-
-
-
 #### PRE-PROCESS  ####
 
 ## scale variables 
@@ -316,7 +313,7 @@ fridge.consumption2 <- sum(fridge.final2$GAP) / sum(laundryRoom$GAP) *100 # the 
 
 
 
-#### OUTLIERS ESCRIBIR PASOS!!!!! ####
+#### OUTLIERS  ####
 outliers.treatment <- aggregated_df[["month"]]$Global_active_power 
 outliers.treatment <- as.data.frame(outliers.treatment)
 names(outliers.treatment)[1]<-paste("GAP")
