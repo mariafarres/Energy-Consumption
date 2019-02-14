@@ -10,18 +10,30 @@
 **Language used:** R programming
 
 **1. PRE-PROCESSING (DATA QUALITY)**
-- Missing values check
-- Outliers removal
-- Attribute selection: correlation plot & decision tree
-- Standarization
+- SQL queries
+- Data types conversion and scaling
+- Missing values treatment: calendar heat + pad + NA interpolation
+
+- Feature engineering
+- Group_by to visualize different data granularities 
+- Filter for descriptive analysis
+  * VISUALIZATION TOOL: PLOT_LY
+
+- Outliers treatment
 
 
-**2. MODELLING**
-- Linear Model
-- Random Forest
-- Gradient Boosting Trees
+**2. TIME SERIES CREATION & DECOMPOSITION**
 
-**3. ERROR ANALYSIS**
-- Absolute and relative errors
-- PREDICTION AND VISUALIZATION
-**Visualization tool: ggplot
+**3. REMAINDER ANALYSIS & VISUALIZATION**
+
+
+**4. FORECASTING**
+- Model ETS
+- Model Arima
+- Model Holt Winters
+- Model Hybrid Forecasting
+
+**5. ACCURACY AND CONFIDENCE ANALYSIS**
+  * VISUALIZATION TOOL: autoplot
+
+**6. PREDICTION**
