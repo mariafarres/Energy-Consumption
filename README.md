@@ -1,4 +1,4 @@
-## Project Description -> Energy Consumption for Smart Homes
+## Energy Consumption for Smart Homes - Project Description 
 
 **Task goal:** build predictive models to forecast future electricity consumption in Smart Homes and demonstrate the client how data can be used to help households make decisions regarding power usage. 
 
