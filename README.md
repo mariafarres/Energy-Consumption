@@ -8,6 +8,7 @@
 
 ## Technical Approach
 **Language used:** R programming
+**Reporting tools:** Power BI & Tableau 
 
 **1. PRE-PROCESSING (DATA QUALITY)**
 - SQL queries
